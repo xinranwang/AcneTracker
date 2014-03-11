@@ -3,6 +3,7 @@ package com.xinranwang.acnetracker;
 import java.io.File;
 import java.io.IOException;
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
 import java.util.Date;
 
 import android.net.Uri;
@@ -13,10 +14,12 @@ import android.app.Activity;
 import android.content.Intent;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
+import android.support.v4.view.ViewPager;
 import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.widget.ImageView;
+import android.widget.Toast;
 
 public class MainActivity extends Activity {
 	
@@ -31,6 +34,9 @@ public class MainActivity extends Activity {
 	private static final String JPEG_FILE_SUFFIX = ".jpg";
 	
 	ImageView lastPhoto;
+	
+	private FullscreenImageAdapter adapter;
+	private ViewPager viewPager;
 
 	@Override
 	protected void onCreate(Bundle savedInstanceState) {
@@ -41,11 +47,20 @@ public class MainActivity extends Activity {
 		
 		mAlbumStorageDirFactory = new AlbumDirFactory();
 		
-		File[] existingFiles = getAlbumDir().listFiles();
-		for (int i = 0; i < existingFiles.length; i++) {
-			Log.v("MainActivity", existingFiles[i].getAbsolutePath());
-			setPic(existingFiles[i].getAbsolutePath());
-		}
+		viewPager = (ViewPager) findViewById(R.id.pager);
+		
+		Log.v("onCreate", getAlbumDir().getAbsolutePath());
+		
+		adapter = new FullscreenImageAdapter(MainActivity.this, getFilePaths());
+		
+		
+		
+//		Intent i = getIntent();
+//		int position = i.getIntExtra("position", 0);
+		
+		
+		
+		setLastestPhoto();
 		
 	}
 
@@ -72,6 +87,50 @@ public class MainActivity extends Activity {
 		return super.onOptionsItemSelected(item);
 	}
 	
+	private void setLastestPhoto() {
+		adapter = new FullscreenImageAdapter(MainActivity.this, getFilePaths());
+		int position = adapter.getCount() - 1;
+		viewPager.setAdapter(adapter);
+
+		// displaying selected image first
+		viewPager.setCurrentItem(position);
+	}
+	
+	public ArrayList<String> getFilePaths() {
+		ArrayList<String> filePaths = new ArrayList<String>();
+
+		File directory = getAlbumDir();
+		//directory.mkdirs();
+
+		// check for directory
+		if (directory.isDirectory()) {
+			// getting list of file paths
+			File[] listFiles = directory.listFiles();
+
+			// Check for count
+			if (listFiles.length > 0) {
+
+				// loop through all files
+				for (int i = 0; i < listFiles.length; i++) {
+
+					// get file path
+					String filePath = listFiles[i].getAbsolutePath();
+
+					filePaths.add(filePath);
+					
+				}
+			} else {
+				// image directory is empty
+				Toast.makeText(this,"empty",Toast.LENGTH_LONG).show();
+			}
+
+		} else {
+			Log.v("GETFILEPATHS", "not directory");
+		}
+
+		return filePaths;
+	}
+	
 	private void dispatchTakePictureIntent() {
 	    Intent takePictureIntent = new Intent(MediaStore.ACTION_IMAGE_CAPTURE);
 	    if (takePictureIntent.resolveActivity(getPackageManager()) != null) {
@@ -94,8 +153,10 @@ public class MainActivity extends Activity {
 	protected void onActivityResult(int requestCode, int resultCode, Intent data) {
 		super.onActivityResult(requestCode, resultCode, data);
 		if (mCurrentPhotoPath != null) {
-			setPic(mCurrentPhotoPath);
+			//setPic(mCurrentPhotoPath);
+			
 			galleryAddPic();
+			setLastestPhoto();
 			mCurrentPhotoPath = null;
 		}
 	}
